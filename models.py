@@ -1,0 +1,7 @@
+STATUS_INACTIVE = "Inactive"
+STATUS_ACTIVE = "Active"
+STATUS_COMPLETED = "Completed"
+STATUS_BLOCKED = "Blocked"
+
+TASK_ACTION = "Action"
+TASK_WAITING = "Waiting"
