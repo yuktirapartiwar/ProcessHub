@@ -70,12 +70,14 @@ def create_resource(
             task["task_type"],
             status
         )
-    )
+        )
     
-    task_id_map[
-        task["task_name"]
-    ] = cursor.lastrowid
+        task_id_map[
+            task["task_name"]
+        ] = cursor.lastrowid
 
+    print("\nTasks Created:")
+    print(task_id_map.keys())
 
     for task_name, dependency_name in template["dependencies"]:
         cursor.execute(
@@ -101,20 +103,20 @@ def create_resource(
         """,
         (task_id,)
     )
-    dependency_count = cursor.fetchone()[0]
+        dependency_count = cursor.fetchone()[0]
 
-    if dependency_count == 0:
-        cursor.execute(
-        """
-        UPDATE tasks
-        SET status = ?
-        WHERE id = ?
-        """,
-        (
-            STATUS_ACTIVE,
-            task_id
+        if dependency_count == 0:
+            cursor.execute(
+            """
+            UPDATE tasks
+            SET status = ?
+            WHERE id = ?
+            """,
+            (
+                STATUS_ACTIVE,
+                task_id
+            )
         )
-    )
     
     conn.commit()
     conn.close()
