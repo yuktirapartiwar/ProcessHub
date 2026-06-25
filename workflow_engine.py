@@ -76,9 +76,6 @@ def create_resource(
             task["task_name"]
         ] = cursor.lastrowid
 
-    print("\nTasks Created:")
-    print(task_id_map.keys())
-
     for task_name, dependency_name in template["dependencies"]:
         cursor.execute(
         """
@@ -122,3 +119,68 @@ def create_resource(
     conn.close()
 
     return resource_id
+
+def are_dependencies_complete(task_id, cursor):
+
+    cursor.execute(
+        """
+        SELECT depends_on_task_id
+        FROM task_dependencies
+        WHERE task_id = ?
+        """,
+        (task_id,)
+    )
+
+    dependencies = cursor.fetchall()
+
+    for dependency in dependencies:
+
+        dependency_id = dependency[0]
+
+        cursor.execute(
+            """
+            SELECT status
+            FROM tasks
+            WHERE id = ?
+            """,
+            (dependency_id,)
+        )
+
+        status = cursor.fetchone()[0]
+
+        if status != "Completed":
+            return False
+
+    return True
+
+def activate_dependent_tasks(completed_task_id, cursor):
+
+    cursor.execute(
+        """
+        SELECT task_id
+        FROM task_dependencies
+        WHERE depends_on_task_id = ?
+        """,
+        (completed_task_id,)
+    )
+
+    dependent_tasks = cursor.fetchall()
+
+    for task in dependent_tasks:
+
+        task_id = task[0]
+
+        if are_dependencies_complete(task_id, cursor):
+
+            cursor.execute(
+                """
+                UPDATE tasks
+                SET status = ?
+                WHERE id = ?
+                """,
+                (
+                    STATUS_ACTIVE,
+                    task_id
+                )
+            )
+
