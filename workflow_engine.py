@@ -9,7 +9,8 @@ from workflow_templates import (
 
 from models import (
     STATUS_ACTIVE,
-    STATUS_INACTIVE
+    STATUS_INACTIVE,
+    STATUS_COMPLETED
 )
 
 def get_template(process_type):
@@ -184,3 +185,76 @@ def activate_dependent_tasks(completed_task_id, cursor):
                 )
             )
 
+def check_resource_completion(resource_id, cursor):
+
+    cursor.execute(
+        """
+        SELECT COUNT(*)
+        FROM tasks
+        WHERE resource_id = ?
+        AND status != ?
+        """,
+        (
+            resource_id,
+            STATUS_COMPLETED
+        )
+    )
+
+    remaining_tasks = cursor.fetchone()[0]
+
+    if remaining_tasks == 0:
+
+        cursor.execute(
+            """
+            UPDATE resources
+            SET completed_date = ?
+            WHERE id = ?
+            """,
+            (
+                str(date.today()),
+                resource_id
+            )
+    )
+
+def complete_task(task_id):
+
+    conn = get_connection()
+
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        UPDATE tasks
+        SET status = ?
+        WHERE id = ?
+        """,
+        (
+            STATUS_COMPLETED,
+            task_id
+        )
+    )
+
+    cursor.execute(
+        """
+        SELECT resource_id
+        FROM tasks
+        WHERE id = ?
+        """,
+        (task_id,)
+    )
+
+    resource_id = cursor.fetchone()[0]
+
+    activate_dependent_tasks(
+        task_id,
+        cursor
+    )
+
+    check_resource_completion(
+        resource_id,
+        cursor
+    )
+
+    conn.commit()
+
+    conn.close()
